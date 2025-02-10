@@ -209,7 +209,7 @@ public class ExportJob implements Writable {
     private List<ExportTaskExecutor> jobExecutorList = Lists.newArrayList();
 
     private Integer finishedTaskCount = 0;
-    private List<List<OutfileInfo>> allOutfileInfo = Lists.newArrayList();
+    private List<List<List<OutfileInfo>>> allOutfileInfo = Lists.newArrayList();
 
     public ExportJob() {
         this.id = -1;
@@ -654,7 +654,7 @@ public class ExportJob implements Writable {
     }
 
     public synchronized void updateExportJobState(ExportJobState newState, Long taskId,
-            List<OutfileInfo> outfileInfoList, ExportFailMsg.CancelType type, String msg) throws JobException {
+            List<List<OutfileInfo>> outfileInfoList, ExportFailMsg.CancelType type, String msg) throws JobException {
         switch (newState) {
             case PENDING:
                 throw new JobException("Can not update ExportJob state to 'PENDING', job id: [{}], task id: [{}]",
@@ -724,7 +724,7 @@ public class ExportJob implements Writable {
         startTimeMs = System.currentTimeMillis();
     }
 
-    private void finishExportTask(Long taskId, List<OutfileInfo> outfileInfoList) throws JobException {
+    private void finishExportTask(Long taskId, List<List<OutfileInfo>> outfileInfoList) throws JobException {
         if (getState() == ExportJobState.CANCELLED) {
             throw new JobException("Job [{}] has been cancelled, can not finish this task: {}", id, taskId);
         }

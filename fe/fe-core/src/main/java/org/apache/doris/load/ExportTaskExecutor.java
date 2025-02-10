@@ -82,7 +82,7 @@ public class ExportTaskExecutor implements TransientTaskExecutor {
             throw new JobException("Export executor has been canceled, task id: {}", taskId);
         }
         exportJob.updateExportJobState(ExportJobState.EXPORTING, taskId, null, null, null);
-        List<OutfileInfo> outfileInfoList = Lists.newArrayList();
+        List<List<OutfileInfo>> outfileInfoList = Lists.newArrayList();
         for (int idx = 0; idx < selectStmtLists.size(); ++idx) {
             if (isCanceled.get()) {
                 throw new JobException("Export executor has been canceled, task id: {}", taskId);
@@ -136,7 +136,7 @@ public class ExportTaskExecutor implements TransientTaskExecutor {
                             ExportFailMsg.CancelType.RUN_FAIL, r.connectContext.getState().getErrorMessage());
                     return;
                 }
-                OutfileInfo outfileInfo = getOutFileInfo(r.connectContext.getResultAttachedInfo());
+                List<OutfileInfo> outfileInfo = getOutFileInfo(r.connectContext.getResultAttachedInfo());
                 outfileInfoList.add(outfileInfo);
             } catch (Exception e) {
                 exportJob.updateExportJobState(ExportJobState.CANCELLED, taskId, null,
@@ -179,12 +179,16 @@ public class ExportTaskExecutor implements TransientTaskExecutor {
         return new AutoCloseConnectContext(connectContext);
     }
 
-    private OutfileInfo getOutFileInfo(Map<String, String> resultAttachedInfo) {
-        OutfileInfo outfileInfo = new OutfileInfo();
-        outfileInfo.setFileNumber(resultAttachedInfo.get(OutFileClause.FILE_NUMBER));
-        outfileInfo.setTotalRows(resultAttachedInfo.get(OutFileClause.TOTAL_ROWS));
-        outfileInfo.setFileSize(resultAttachedInfo.get(OutFileClause.FILE_SIZE));
-        outfileInfo.setUrl(resultAttachedInfo.get(OutFileClause.URL));
+    private List<OutfileInfo> getOutFileInfo(List<Map<String, String>> resultAttachedInfo) {
+        List<OutfileInfo> outfileInfo = Lists.newArrayList();
+        for (Map<String, String> row : resultAttachedInfo) {
+            OutfileInfo outfileInfoOneRow = new OutfileInfo();
+            outfileInfoOneRow.setFileNumber(row.get(OutFileClause.FILE_NUMBER));
+            outfileInfoOneRow.setTotalRows(row.get(OutFileClause.TOTAL_ROWS));
+            outfileInfoOneRow.setFileSize(row.get(OutFileClause.FILE_SIZE));
+            outfileInfoOneRow.setUrl(row.get(OutFileClause.URL));
+            outfileInfo.add(outfileInfoOneRow);
+        }
         return outfileInfo;
     }
 
