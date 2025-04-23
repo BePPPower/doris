@@ -57,7 +57,7 @@ public abstract class FileFormatProperties {
 
     public abstract PFetchTableSchemaRequest toPFetchTableSchemaRequest();
 
-    public abstract TResultFileSinkOptions toTResultFileSinkOptions();
+    public abstract void fullTResultFileSinkOptions(TResultFileSinkOptions sinkOptions);
 
     public abstract TFileAttributes toTFileAttributes();
 

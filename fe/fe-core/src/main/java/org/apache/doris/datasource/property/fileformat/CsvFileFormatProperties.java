@@ -138,8 +138,9 @@ public class CsvFileFormatProperties extends FileFormatProperties {
     }
 
     @Override
-    public TResultFileSinkOptions toTResultFileSinkOptions() {
-        return null;
+    public void fullTResultFileSinkOptions(TResultFileSinkOptions sinkOptions) {
+        sinkOptions.setColumnSeparator(columnSeparator);
+        sinkOptions.setLineDelimiter(lineDelimiter);
     }
 
     // The method `analyzeFileFormatProperties` must have been called once before this method

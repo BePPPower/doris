@@ -42,8 +42,7 @@ public class AvroFileFormatProperties extends FileFormatProperties {
     }
 
     @Override
-    public TResultFileSinkOptions toTResultFileSinkOptions() {
-        return null;
+    public void fullTResultFileSinkOptions(TResultFileSinkOptions sinkOptions) {
     }
 
     @Override

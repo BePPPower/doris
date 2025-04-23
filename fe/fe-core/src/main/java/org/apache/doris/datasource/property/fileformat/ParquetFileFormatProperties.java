@@ -17,19 +17,47 @@
 
 package org.apache.doris.datasource.property.fileformat;
 
+import org.apache.doris.datasource.property.constants.ParquetProperties;
 import org.apache.doris.nereids.exceptions.AnalysisException;
 import org.apache.doris.proto.InternalService.PFetchTableSchemaRequest;
 import org.apache.doris.thrift.TFileAttributes;
 import org.apache.doris.thrift.TFileFormatType;
 import org.apache.doris.thrift.TFileTextScanRangeParams;
 import org.apache.doris.thrift.TParquetCompressionType;
+import org.apache.doris.thrift.TParquetVersion;
 import org.apache.doris.thrift.TResultFileSinkOptions;
 
+import com.google.common.collect.Maps;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 
 public class ParquetFileFormatProperties extends FileFormatProperties {
+    public static final Logger LOG = LogManager.getLogger(ParquetFileFormatProperties.class);
+    public static final Map<String, TParquetCompressionType> PARQUET_COMPRESSION_TYPE_MAP = Maps.newHashMap();
+    public static final Map<String, TParquetVersion> PARQUET_VERSION_MAP = Maps.newHashMap();
+
+    static {
+        PARQUET_COMPRESSION_TYPE_MAP.put("snappy", TParquetCompressionType.SNAPPY);
+        PARQUET_COMPRESSION_TYPE_MAP.put("gzip", TParquetCompressionType.GZIP);
+        PARQUET_COMPRESSION_TYPE_MAP.put("brotli", TParquetCompressionType.BROTLI);
+        PARQUET_COMPRESSION_TYPE_MAP.put("zstd", TParquetCompressionType.ZSTD);
+        PARQUET_COMPRESSION_TYPE_MAP.put("lz4", TParquetCompressionType.LZ4);
+        // arrow do not support lzo and bz2 compression type.
+        // PARQUET_COMPRESSION_TYPE_MAP.put("lzo", TParquetCompressionType.LZO);
+        // PARQUET_COMPRESSION_TYPE_MAP.put("bz2", TParquetCompressionType.BZ2);
+        PARQUET_COMPRESSION_TYPE_MAP.put("plain", TParquetCompressionType.UNCOMPRESSED);
+
+        PARQUET_VERSION_MAP.put("v1", TParquetVersion.PARQUET_1_0);
+        PARQUET_VERSION_MAP.put("latest", TParquetVersion.PARQUET_2_LATEST);
+    }
+
     private TParquetCompressionType parquetCompressionType = TParquetCompressionType.SNAPPY;
     private boolean parquetDisableDictionary = false;
+    private static TParquetVersion parquetVersion = TParquetVersion.PARQUET_1_0;
 
     public ParquetFileFormatProperties(TFileFormatType fileFormatType) {
         super(fileFormatType);
@@ -38,7 +66,41 @@ public class ParquetFileFormatProperties extends FileFormatProperties {
     @Override
     public void analyzeFileFormatProperties(Map<String, String> formatProperties, boolean isRemoveOriginProperty)
             throws AnalysisException {
+        // save compress type
+        if (formatProperties.containsKey(ParquetProperties.COMPRESS_TYPE)) {
+            if (PARQUET_COMPRESSION_TYPE_MAP.containsKey(formatProperties.get(ParquetProperties.COMPRESS_TYPE)
+                    .toLowerCase())) {
+                this.parquetCompressionType = PARQUET_COMPRESSION_TYPE_MAP.get(
+                        formatProperties.get(ParquetProperties.COMPRESS_TYPE).toLowerCase());
+                formatProperties.remove(ParquetProperties.COMPRESS_TYPE);
+            } else {
+                throw new AnalysisException("parquet compression type ["
+                        + formatProperties.get(ParquetProperties.COMPRESS_TYPE)
+                        + "] is invalid, please choose one among SNAPPY, GZIP, BROTLI, ZSTD, LZ4, LZO, BZ2 or PLAIN");
+            }
+        }
+
+        // save all parquet prefix property
+        Iterator<Entry<String, String>> iter = formatProperties.entrySet().iterator();
+        while (iter.hasNext()) {
+            Map.Entry<String, String> entry = iter.next();
+            if (entry.getKey().startsWith(ParquetProperties.PARQUET_PROP_PREFIX)) {
+                iter.remove();
+                if (entry.getKey().substring(ParquetProperties.PARQUET_PROP_PREFIX.length())
+                        .equals(ParquetProperties.PARQUET_DISABLE_DICTIONARY)) {
+                    this.parquetDisableDictionary = Boolean.valueOf(entry.getValue());
+                } else if (entry.getKey().substring(ParquetProperties.PARQUET_PROP_PREFIX.length())
+                        .equals(ParquetProperties.PARQUET_VERSION)) {
+                    if (PARQUET_VERSION_MAP.containsKey(entry.getValue())) {
+                        this.parquetVersion = PARQUET_VERSION_MAP.get(entry.getValue());
+                    } else {
+                        LOG.debug("not set parquet version type or is invalid, set default to PARQUET_1.0 version.");
+                    }
+                }
+            }
+        }
     }
+
 
     @Override
     public PFetchTableSchemaRequest toPFetchTableSchemaRequest() {
@@ -46,8 +108,10 @@ public class ParquetFileFormatProperties extends FileFormatProperties {
     }
 
     @Override
-    public TResultFileSinkOptions toTResultFileSinkOptions() {
-        return null;
+    public void fullTResultFileSinkOptions(TResultFileSinkOptions sinkOptions) {
+        sinkOptions.setParquetCompressionType(parquetCompressionType);
+        sinkOptions.setParquetDisableDictionary(parquetDisableDictionary);
+        sinkOptions.setParquetVersion(parquetVersion);
     }
 
     @Override

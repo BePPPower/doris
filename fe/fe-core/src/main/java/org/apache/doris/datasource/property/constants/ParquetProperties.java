@@ -20,7 +20,9 @@ package org.apache.doris.datasource.property.constants;
 import org.apache.doris.thrift.TParquetVersion;
 
 public class ParquetProperties {
+    public static final String COMPRESS_TYPE = "compress_type";
     public static final String PARQUET_DISABLE_DICTIONARY = "disable_dictionary";
     public static final TParquetVersion parquetVersion = TParquetVersion.PARQUET_1_0;
     public static final String PARQUET_VERSION = "version";
+    public static final String PARQUET_PROP_PREFIX = "parquet.";
 }
