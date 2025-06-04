@@ -74,6 +74,7 @@ public class LocationPath {
         S3A,
         S3N,
         VIEWFS,
+        WASBS,
         UNKNOWN,
         NOSCHEME // no scheme info
     }
@@ -187,6 +188,9 @@ public class LocationPath {
             case FeConstants.FS_PREFIX_FILE:
                 this.scheme = Scheme.LOCAL;
                 break;
+            case "wasbs":
+                this.scheme = Scheme.WASBS;
+                break;
             default:
                 this.scheme = Scheme.UNKNOWN;
                 break;
@@ -244,6 +248,7 @@ public class LocationPath {
                 // ATTN, for COSN, on FE side, use HadoopFS to access, but on BE, use S3 client to access.
             case COSN:
             case LAKEFS:
+            case WASBS:
                 // now we only support S3 client for object storage on BE
                 return TFileType.FILE_S3;
             case HDFS:
@@ -277,6 +282,7 @@ public class LocationPath {
             case BOS:
             case GCS:
             case COSN:
+            case WASBS:
                 // All storage will use s3 client to access on BE, so need convert to s3
                 return new Path(convertToS3(location));
             case HDFS:
@@ -421,6 +427,7 @@ public class LocationPath {
             case OBS:
             case BOS:
             case GCS:
+            case WASBS:
                 // All storage will use s3 client to access on BE, so need convert to s3
                 fsType = FileSystemType.S3;
                 break;
